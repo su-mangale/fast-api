@@ -1,0 +1,29 @@
+# FastAPI Minimal Infrastructure Configuration
+# Copy this file to terraform.tfvars and customize as needed
+# 
+# IMPORTANT: Configure AWS credentials first!
+# See AWS_CREDENTIALS.md for detailed setup instructions
+
+# AWS Configuration
+aws_region = "ap-south-1"
+environment = "dev"
+project_name = "fastapi-app"
+
+# EC2 Instance Configuration
+instance_type = "t3.micro"  # Free tier eligible
+
+# SSH Access
+key_pair_name = "default"  # Make sure this key pair exists in ap-south-1 region
+
+# Network Security (WARNING: Restrict these CIDR blocks in production)
+allowed_cidr_blocks = [
+  "0.0.0.0/0"  # Allow from anywhere - CHANGE THIS for production!
+  # "203.0.113.0/24",  # Example: Your office IP range
+  # "198.51.100.0/24"  # Example: Your home IP range
+]
+
+# Note: This minimal setup creates:
+# - Ubuntu 22.04 LTS EC2 instance in ap-south-1
+# - Security group named "fast-api" 
+# - Uses "default" key pair for SSH access
+# - No RDS database (use SQLite, external DB service, or Docker PostgreSQL)
