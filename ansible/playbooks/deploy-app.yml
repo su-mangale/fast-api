@@ -1,0 +1,85 @@
+---
+# Ultra Simple Application Deployment
+- name: Deploy FastAPI Application
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    # Clone Repository
+    - name: Clone application repository
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ app_directory }}"
+        version: "{{ git_branch }}"
+        force: yes
+      become_user: "{{ app_user }}"
+
+    # Set Permissions
+    - name: Set directory ownership
+      file:
+        path: "{{ app_directory }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        recurse: yes
+
+    # Install Python Dependencies
+    - name: Install Python requirements
+      pip:
+        requirements: "{{ app_directory }}/requirements.txt"
+        executable: pip3
+      become_user: "{{ app_user }}"
+
+    # Create Environment File
+    - name: Create .env file
+      template:
+        src: ../templates/env.j2
+        dest: "{{ app_directory }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0640'
+
+    # Create Docker Compose File
+    - name: Create docker-compose.yml
+      template:
+        src: ../templates/docker-compose.yml.j2
+        dest: "{{ app_directory }}/docker-compose.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+
+    # Start Application
+    - name: Start application with Docker Compose
+      docker_compose:
+        project_src: "{{ app_directory }}"
+        state: present
+        build: yes
+      become_user: "{{ app_user }}"
+
+    # Create Systemd Service
+    - name: Create systemd service
+      template:
+        src: ../templates/fastapi.service.j2
+        dest: "/etc/systemd/system/{{ app_name }}.service"
+        mode: '0644'
+
+    - name: Enable and start service
+      systemd:
+        name: "{{ app_name }}"
+        daemon_reload: yes
+        enabled: yes
+        state: started
+
+    # Test Application
+    - name: Wait for application
+      wait_for:
+        port: "{{ app_port }}"
+        timeout: 60
+
+    - name: Test health endpoint
+      uri:
+        url: "http://localhost:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+      retries: 3
+      delay: 5

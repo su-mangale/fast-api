@@ -1,0 +1,22 @@
+---
+# Ultra Simple Site Playbook
+- name: FastAPI Application Setup
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Configure server
+      include: configure-server.yml
+
+    - name: Deploy application
+      include: deploy-app.yml
+
+    - name: Display completion message
+      debug:
+        msg: |
+          ✅ FastAPI deployment completed!
+          🌐 Application: http://{{ ansible_host }}:{{ app_port }}
+          📚 API Docs: http://{{ ansible_host }}:{{ app_port }}/docs
+          🔍 Health: http://{{ ansible_host }}:{{ app_port }}/health
+          �️ Database: PostgreSQL on port {{ db_port }}

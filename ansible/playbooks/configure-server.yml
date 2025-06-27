@@ -1,0 +1,127 @@
+---
+# Ultra Simple Server Configuration
+- name: Configure Server Environment
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    # System Updates
+    - name: Update system (Ubuntu/Debian)
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Update system (RedHat/Amazon Linux)
+      yum:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    # Install Common Packages
+    - name: Install packages (Ubuntu/Debian)
+      apt:
+        name: "{{ common_packages }}"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install packages (RedHat/Amazon Linux)
+      yum:
+        name: "{{ common_packages }}"
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    # Install Python and Docker
+    - name: Install Python and Docker (Ubuntu/Debian)
+      apt:
+        name: 
+          - python3
+          - python3-pip
+          - python3-venv
+          - docker.io
+          - docker-compose
+          - postgresql
+          - postgresql-contrib
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Python and Docker (RedHat/Amazon Linux)
+      yum:
+        name:
+          - python3
+          - python3-pip
+          - docker
+          - postgresql
+          - postgresql-server
+          - postgresql-contrib
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    # Start Services
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Start and enable PostgreSQL
+      systemd:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    # Initialize PostgreSQL (RedHat only)
+    - name: Initialize PostgreSQL database (RedHat)
+      command: postgresql-setup initdb
+      when: ansible_os_family == "RedHat"
+      ignore_errors: yes
+
+    # Create Application User
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        create_home: yes
+        shell: /bin/bash
+
+    - name: Add user to docker group
+      user:
+        name: "{{ app_user }}"
+        groups: docker
+        append: yes
+
+    # Create App Directory
+    - name: Create application directory
+      file:
+        path: "{{ app_directory }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    # Setup PostgreSQL Database
+    - name: Create PostgreSQL database
+      postgresql_db:
+        name: "{{ db_name }}"
+        state: present
+      become_user: postgres
+
+    - name: Create PostgreSQL user
+      postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}:ALL"
+        state: present
+      become_user: postgres
+
+    # Basic Firewall (Ubuntu only)
+    - name: Allow ports through firewall (Ubuntu)
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - "22"
+        - "80"
+        - "{{ app_port }}"
+      when: ansible_os_family == "Debian"
