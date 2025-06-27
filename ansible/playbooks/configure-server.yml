@@ -101,18 +101,19 @@
 
     # Setup PostgreSQL Database
     - name: Create PostgreSQL database
-      postgresql_db:
-        name: "{{ db_name }}"
-        state: present
-      become_user: postgres
+      shell: |
+        sudo -u postgres createdb {{ db_name }}
+      ignore_errors: yes
 
     - name: Create PostgreSQL user
-      postgresql_user:
-        name: "{{ db_user }}"
-        password: "{{ db_password }}"
-        priv: "{{ db_name }}:ALL"
-        state: present
-      become_user: postgres
+      shell: |
+        sudo -u postgres psql -c "CREATE USER {{ db_user }} WITH PASSWORD '{{ db_password }}';"
+      ignore_errors: yes
+
+    - name: Grant privileges to PostgreSQL user
+      shell: |
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};"
+      ignore_errors: yes
 
     # Basic Firewall (Ubuntu only)
     - name: Allow ports through firewall (Ubuntu)
