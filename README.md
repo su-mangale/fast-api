@@ -56,11 +56,13 @@ project/
 
 4. **Run Application**:
    ```bash
-   # Inside dev container
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   # Inside dev container, start the development environment
+   .devcontainer/dev-start.sh start
    ```
 
 5. **Access API**: `http://localhost:8000/docs`
+
+> **Note**: The dev container helper script automatically starts PostgreSQL database and FastAPI with hot reload enabled.
 
 ### Manual Setup (Alternative)
 ```bash
