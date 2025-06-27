@@ -8,7 +8,7 @@ app_directory: /opt/fastapi-app
 app_port: 8000
 
 # Repository Configuration
-git_repo: "https://github.com/your-username/your-repo.git"  # Update with your repo
+git_repo: "https://github.com/su-mangale/fast-api.git"  # Update with your repo
 git_branch: main
 
 # Database Configuration
