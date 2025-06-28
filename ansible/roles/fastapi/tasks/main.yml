@@ -65,14 +65,14 @@
     group: "{{ app_user }}"
     mode: '0640'
 
-- name: Verify docker-compose.yml exists in repository
+- name: Verify docker compose.yml exists in repository
   stat:
     path: "{{ app_directory }}/docker-compose.yml"
   register: compose_file
 
-- name: Fail if docker-compose.yml is missing
+- name: Fail if docker compose.yml is missing
   fail:
-    msg: "docker-compose.yml not found in repository at {{ app_directory }}/docker-compose.yml"
+    msg: "docker compose.yml not found in repository at {{ app_directory }}/docker-compose.yml"
   when: not compose_file.stat.exists
 
 - name: Verify nginx.conf exists in repository
@@ -86,7 +86,7 @@
   when: not nginx_conf_file.stat.exists
 
 - name: Validate docker-compose.yml syntax
-  shell: cd {{ app_directory }} && docker-compose config
+  shell: cd {{ app_directory }} && docker compose config
   register: compose_validation
   ignore_errors: yes
 
@@ -102,23 +102,23 @@
 - name: Stop and remove any existing containers
   shell: |
     cd {{ app_directory }}
-    docker-compose down -v --remove-orphans 2>/dev/null || true
+    docker compose down -v --remove-orphans 2>/dev/null || true
   ignore_errors: yes
 
 - name: Start database and API services
   shell: |
     cd {{ app_directory }}
-    docker-compose up -d --build db api
+    docker compose up -d --build db api
   register: compose_start_result
 
 - name: Start nginx service
   shell: |
     cd {{ app_directory }}
-    docker-compose up -d nginx
+    docker compose up -d nginx
   register: nginx_start_result
   ignore_errors: yes
 
-- name: Show docker-compose start result
+- name: Show docker compose start result
   debug:
     msg: "Docker Compose start result: {{ compose_start_result.stdout }}"
 

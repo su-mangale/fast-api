@@ -87,7 +87,7 @@
 
     # Validate and deploy
     - name: Validate docker-compose.yml syntax
-      shell: cd {{ app_directory }} && docker-compose config
+      shell: cd {{ app_directory }} && docker compose config
       register: compose_validation
       ignore_errors: yes
 
@@ -99,7 +99,7 @@
     - name: Stop and remove existing containers
       shell: |
         cd {{ app_directory }}
-        docker-compose down -v --remove-orphans 2>/dev/null || true
+        docker compose down -v --remove-orphans 2>/dev/null || true
       ignore_errors: yes
 
     # Deploy application using direct docker commands (fallback for compatibility)

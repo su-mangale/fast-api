@@ -1,0 +1,108 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# FastAPI specific
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Docker
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup files
+*.bak
+*.backup
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.cert
+
+# Monitoring specific
+monitoring/terraform/.terraform/
+monitoring/terraform/.terraform.lock.hcl
+monitoring/terraform/terraform.tfstate*
+monitoring/terraform/terraform.tfvars
+monitoring/ansible/*.retry
+monitoring/ansible/ansible.log
+
+# Terraform (from main terraform directory)
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate*
+terraform/terraform.tfvars
+terraform/*.tfplan
+
+# Ansible
+ansible/*.retry
+ansible/ansible.log
+
+# Secrets
+secrets/
+keys/
+*.secret
