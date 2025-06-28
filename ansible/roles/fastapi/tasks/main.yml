@@ -1,0 +1,147 @@
+---
+# FastAPI application deployment tasks
+- name: Ensure git is installed
+  package:
+    name: git
+    state: present
+
+- name: Test GitHub connectivity
+  uri:
+    url: https://github.com
+    method: GET
+    timeout: 10
+  register: github_test
+  ignore_errors: yes
+
+- name: Show GitHub connectivity status
+  debug:
+    msg: "GitHub connectivity: {{ 'OK' if github_test.status == 200 else 'FAILED' }}"
+
+- name: Remove existing application directory
+  file:
+    path: "{{ app_directory }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Create fresh application directory
+  file:
+    path: "{{ app_directory }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Clone application repository
+  git:
+    repo: "{{ git_repo }}"
+    dest: "{{ app_directory }}"
+    version: "{{ git_branch }}"
+    force: yes
+    clone: yes
+  register: git_clone_result
+  ignore_errors: yes
+
+- name: Clone repository using shell (fallback)
+  shell: |
+    rm -rf {{ app_directory }}
+    git clone {{ git_repo }} {{ app_directory }}
+    cd {{ app_directory }}
+    git checkout {{ git_branch }}
+  when: git_clone_result.failed is defined and git_clone_result.failed
+  register: shell_clone_result
+
+- name: Set directory ownership after clone
+  file:
+    path: "{{ app_directory }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    recurse: yes
+
+- name: Create .env file for Docker Compose
+  template:
+    src: env.j2
+    dest: "{{ app_directory }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0640'
+
+- name: Verify docker-compose.yml exists in repository
+  stat:
+    path: "{{ app_directory }}/docker-compose.yml"
+  register: compose_file
+
+- name: Fail if docker-compose.yml is missing
+  fail:
+    msg: "docker-compose.yml not found in repository at {{ app_directory }}/docker-compose.yml"
+  when: not compose_file.stat.exists
+
+- name: Verify nginx.conf exists in repository
+  stat:
+    path: "{{ app_directory }}/nginx.conf"
+  register: nginx_conf_file
+
+- name: Fail if nginx.conf is missing
+  fail:
+    msg: "nginx.conf not found in repository at {{ app_directory }}/nginx.conf"
+  when: not nginx_conf_file.stat.exists
+
+- name: Validate docker-compose.yml syntax
+  shell: cd {{ app_directory }} && docker-compose config
+  register: compose_validation
+  ignore_errors: yes
+
+- name: Show compose validation result
+  debug:
+    msg: "Compose validation: {{ 'PASSED' if compose_validation.rc == 0 else 'FAILED' }}"
+
+- name: Display compose validation errors if any
+  debug:
+    msg: "Validation errors: {{ compose_validation.stderr }}"
+  when: compose_validation.rc != 0
+
+- name: Stop and remove any existing containers
+  shell: |
+    cd {{ app_directory }}
+    docker-compose down -v --remove-orphans 2>/dev/null || true
+  ignore_errors: yes
+
+- name: Start database and API services
+  shell: |
+    cd {{ app_directory }}
+    docker-compose up -d --build db api
+  register: compose_start_result
+
+- name: Start nginx service
+  shell: |
+    cd {{ app_directory }}
+    docker-compose up -d nginx
+  register: nginx_start_result
+  ignore_errors: yes
+
+- name: Show docker-compose start result
+  debug:
+    msg: "Docker Compose start result: {{ compose_start_result.stdout }}"
+
+- name: Display any errors from docker compose
+  debug:
+    msg: "Docker Compose errors: {{ compose_start_result.stderr }}"
+  when: compose_start_result.stderr is defined and compose_start_result.stderr != ""
+
+- name: Wait for application to be ready
+  wait_for:
+    port: 80
+    timeout: 60
+
+- name: Test application health endpoint via nginx
+  uri:
+    url: "http://localhost/health"
+    method: GET
+    status_code: 200
+  retries: 5
+  delay: 10
+  ignore_errors: yes
+  register: health_check
+
+- name: Show health check result
+  debug:
+    msg: "Health check: {{ 'PASSED' if health_check.status == 200 else 'FAILED' }}"

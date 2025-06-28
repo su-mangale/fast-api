@@ -24,6 +24,17 @@ app_env_vars:
   API_HOST: "0.0.0.0"
   API_PORT: "{{ app_port }}"
 
+# Production Settings
+api_workers: 4
+compose_project_name: "{{ app_name }}"
+nginx_port: 80
+nginx_ssl_port: 443
+
+# Security
+secret_key: "IH6eTU59ilNk3Jen7MyChWLjHMrbtmQEEXHIk25CuBOGV5nuBH1p42C85bdLaC3z"
+algorithm: "HS256"
+access_token_expire_minutes: 30
+
 # System Packages
 common_packages:
   - git

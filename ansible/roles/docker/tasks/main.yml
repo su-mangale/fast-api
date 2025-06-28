@@ -1,0 +1,110 @@
+---
+# Docker installation using official Docker repository
+- name: Install prerequisites for Docker installation (Ubuntu/Debian)
+  apt:
+    name:
+      - ca-certificates
+      - curl
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Create directory for Docker GPG key
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  when: ansible_os_family == "Debian"
+
+- name: Download Docker's official GPG key
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+  when: ansible_os_family == "Debian"
+
+- name: Add Docker repository to Apt sources
+  shell: |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  when: ansible_os_family == "Debian"
+
+- name: Update apt cache after adding Docker repository
+  apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker packages (Ubuntu/Debian)
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker (RedHat/Amazon Linux)
+  yum:
+    name: docker
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Verify Docker installation
+  command: docker --version
+  register: docker_version
+  failed_when: false
+
+- name: Show Docker version
+  debug:
+    msg: "Docker version: {{ docker_version.stdout }}"
+  when: docker_version.rc == 0
+
+- name: Verify Docker Compose plugin installation
+  command: docker compose version
+  register: docker_compose_version
+  failed_when: false
+
+- name: Show Docker Compose version
+  debug:
+    msg: "Docker Compose version: {{ docker_compose_version.stdout }}"
+  when: docker_compose_version.rc == 0
+
+- name: Remove old docker-compose if incompatible
+  pip:
+    name: docker-compose
+    state: absent
+    executable: pip3
+  when: docker_compose_version.rc == 0 and "1.29" in docker_compose_version.stdout
+  ignore_errors: yes
+
+- name: Install compatible docker-compose version
+  pip:
+    name: docker-compose>=1.29.0,<2.0.0
+    executable: pip3
+  when: docker_compose_version.rc != 0 or "1.29" in docker_compose_version.stdout
+
+- name: Verify updated Docker Compose installation
+  command: docker-compose --version
+  register: updated_compose_version
+  failed_when: false
+
+- name: Show updated Docker Compose version
+  debug:
+    msg: "Updated Docker Compose version: {{ updated_compose_version.stdout }}"
+  when: updated_compose_version.rc == 0
+
+- name: Add app user to docker group
+  user:
+    name: "{{ app_user }}"
+    groups: docker
+    append: yes
+
+- name: Reset ssh connection to allow user changes to affect ansible user
+  meta: reset_connection

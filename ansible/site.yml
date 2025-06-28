@@ -1,0 +1,27 @@
+---
+# Main site playbook using roles
+- name: Deploy FastAPI Application
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - common
+    - docker
+    - fastapi
+
+  post_tasks:
+    - name: Display deployment completion
+      debug:
+        msg: |
+          FastAPI deployment completed!
+          Application: http://{{ ansible_host }}
+          API Docs: http://{{ ansible_host }}/docs
+          Health: http://{{ ansible_host }}/health
+          Database: PostgreSQL container (internal only)
+          
+          Security Features:
+          - Nginx reverse proxy on port 80/443
+          - API not directly accessible (internal network only)
+          - Database not externally exposed
+          - Production-grade container setup

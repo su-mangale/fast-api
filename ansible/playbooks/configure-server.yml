@@ -1,5 +1,5 @@
 ---
-# Ultra Simple Server Configuration
+# Simplified server configuration (no PostgreSQL setup)
 - name: Configure Server Environment
   hosts: all
   become: yes
@@ -40,21 +40,30 @@
           - python3-pip
           - python3-venv
           - docker.io
-          - docker-compose
-          - postgresql
-          - postgresql-contrib
         state: present
       when: ansible_os_family == "Debian"
+
+    # Install Docker Compose
+    - name: Install Docker Compose via pip
+      pip:
+        name: docker-compose
+        executable: pip3
+
+    - name: Verify Docker Compose installation
+      command: docker-compose --version
+      register: docker_compose_version
+      failed_when: false
+
+    - name: Show Docker Compose version
+      debug:
+        msg: "Docker Compose version: {{ docker_compose_version.stdout }}"
+      when: docker_compose_version.rc == 0
 
     - name: Install Python and Docker (RedHat/Amazon Linux)
       yum:
         name:
           - python3
-          - python3-pip
           - docker
-          - postgresql
-          - postgresql-server
-          - postgresql-contrib
         state: present
       when: ansible_os_family == "RedHat"
 
@@ -64,18 +73,6 @@
         name: docker
         state: started
         enabled: yes
-
-    - name: Start and enable PostgreSQL
-      systemd:
-        name: postgresql
-        state: started
-        enabled: yes
-
-    # Initialize PostgreSQL (RedHat only)
-    - name: Initialize PostgreSQL database (RedHat)
-      command: postgresql-setup initdb
-      when: ansible_os_family == "RedHat"
-      ignore_errors: yes
 
     # Create Application User
     - name: Create application user
@@ -98,31 +95,3 @@
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
         mode: '0755'
-
-    # Setup PostgreSQL Database
-    - name: Create PostgreSQL database
-      shell: |
-        sudo -u postgres createdb {{ db_name }}
-      ignore_errors: yes
-
-    - name: Create PostgreSQL user
-      shell: |
-        sudo -u postgres psql -c "CREATE USER {{ db_user }} WITH PASSWORD '{{ db_password }}';"
-      ignore_errors: yes
-
-    - name: Grant privileges to PostgreSQL user
-      shell: |
-        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};"
-      ignore_errors: yes
-
-    # Basic Firewall (Ubuntu only)
-    - name: Allow ports through firewall (Ubuntu)
-      ufw:
-        rule: allow
-        port: "{{ item }}"
-        proto: tcp
-      loop:
-        - "22"
-        - "80"
-        - "{{ app_port }}"
-      when: ansible_os_family == "Debian"

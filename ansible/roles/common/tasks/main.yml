@@ -1,0 +1,63 @@
+---
+# Common system setup tasks
+- name: Update system packages (Ubuntu/Debian)
+  apt:
+    update_cache: yes
+    upgrade: dist
+  when: ansible_os_family == "Debian"
+
+- name: Update system packages (RedHat/Amazon Linux)
+  yum:
+    name: "*"
+    state: latest
+  when: ansible_os_family == "RedHat"
+
+- name: Install common packages (Ubuntu/Debian)
+  apt:
+    name: "{{ common_packages }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages (RedHat/Amazon Linux)
+  yum:
+    name: "{{ common_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Python and pip (Ubuntu/Debian)
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Python and pip (RedHat/Amazon Linux)
+  yum:
+    name:
+      - python3
+      - python3-pip
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure group "docker" exists with correct gid
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Create application user
+  user:
+    name: "{{ app_user }}"
+    create_home: yes
+    shell: /bin/bash
+    groups: docker
+    append: yes
+
+- name: Create application directory
+  file:
+    path: "{{ app_directory }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'

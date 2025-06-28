@@ -1,6 +1,6 @@
 # FastAPI Server Configuration with Ansible
 
-Ultra simple Ansible setup to configure EC2 instances for FastAPI with PostgreSQL.
+Ultra simple Ansible setup to configure EC2 instances for FastAPI with PostgreSQL using Docker Compose.
 
 ## What This Configures
 
@@ -8,22 +8,16 @@ Ultra simple Ansible setup to configure EC2 instances for FastAPI with PostgreSQ
 - System updates (Ubuntu/RedHat)
 - Essential packages (git, curl, wget, vim)
 - Python 3 + pip
-- Docker + Docker Compose
-- PostgreSQL database server
+- Docker CE + Docker Compose (official Docker installation method)
 - Application user setup
-
-### Database Setup
-- PostgreSQL 15 installation
-- Database creation: `fastapi_db`
-- User creation: `fastapi_user` with password
-- Permissions configured
 
 ### Application Deployment
 - Git repository cloning
-- Python dependencies installation
-- Environment configuration
-- Docker containers (FastAPI + PostgreSQL)
-- Systemd service setup
+- Environment configuration (.env file)
+- Docker containers (FastAPI + PostgreSQL + Nginx via Docker Compose)
+- Uses production profile from existing docker-compose.yml in repository
+
+**Note**: PostgreSQL runs as a Docker container, not as a system service. The deployment uses the existing docker-compose.yml from your git repository with the production profile.
 
 ## Prerequisites
 
@@ -54,12 +48,11 @@ all:
 Edit `inventory/group_vars/all.yml`:
 
 ```yaml
-# Application
+# Application Configuration
 app_name: fastapi-app
-app_port: 8000
-git_repo: "https://github.com/your-username/your-repo.git"
+git_repo: "https://github.com/your-username/your-repo.git"  # Update with your repo
 
-# Database
+# Database Configuration
 db_name: fastapi_db
 db_user: fastapi_user
 db_password: fastapi_password123  # Change in production
@@ -70,23 +63,35 @@ db_password: fastapi_password123  # Change in production
 ### Step 1: Test Connection
 ```bash
 cd ansible
-ansible all -i inventory/hosts.yml -m ping
+ansible all -m ping
 ```
 
-### Step 2: Full Deployment
+### Step 2: Full Deployment (Role-based)
 ```bash
-ansible-playbook -i inventory/hosts.yml playbooks/site.yml
+ansible-playbook site.yml
 ```
 
-### Step 3: Verify Deployment
+### Step 3: Alternative Deployment (Individual Playbooks)
 ```bash
-# Check if app is running
-curl http://YOUR_EC2_PUBLIC_IP:8000
+# Server configuration only
+ansible-playbook playbooks/configure-server.yml
 
-# SSH to instance and check services
+# Application deployment only
+ansible-playbook playbooks/deploy-app.yml
+```
+
+### Step 4: Verify Deployment
+```bash
+# Check if app is running via nginx
+curl http://YOUR_EC2_PUBLIC_IP
+
+# Check API docs
+curl http://YOUR_EC2_PUBLIC_IP/docs
+
+# SSH to instance and check Docker containers
 ssh -i ~/.ssh/your-key.pem ubuntu@YOUR_EC2_PUBLIC_IP
-sudo systemctl status fastapi-app
 sudo docker ps
+sudo docker compose --profile production logs
 ```
 
 ## Alternative: Step-by-Step Deployment
@@ -101,11 +106,27 @@ ansible-playbook -i inventory/hosts.yml playbooks/configure-server.yml
 ansible-playbook -i inventory/hosts.yml playbooks/deploy-app.yml
 ```
 
+## Docker Compose Profile
+
+The deployment uses the production profile from your repository's docker-compose.yml:
+```bash
+docker compose --profile production up -d --build
+```
+
+This profile includes:
+- FastAPI application container
+- PostgreSQL database container
+- Nginx reverse proxy (only service exposed externally)
+- Internal network isolation for security
+
 ## Database Connection
 
-Your FastAPI app will connect using:
+Your FastAPI app connects using environment variables:
 ```
-DATABASE_URL=postgresql://fastapi_user:fastapi_password123@localhost:5432/fastapi_db
+DB_USER=fastapi_user
+DB_PASSWORD=fastapi_password123
+DB_NAME=fastapi_db
+DATABASE_URL=postgresql://fastapi_user:fastapi_password123@db:5432/fastapi_db
 ```
 
 ## Troubleshooting
@@ -115,19 +136,22 @@ DATABASE_URL=postgresql://fastapi_user:fastapi_password123@localhost:5432/fastap
 # SSH to your EC2 instance
 ssh -i ~/.ssh/your-key.pem ubuntu@YOUR_EC2_PUBLIC_IP
 
-# Check application service
-sudo systemctl status fastapi-app
-sudo journalctl -u fastapi-app -f
-
 # Check Docker containers
 sudo docker ps
-sudo docker logs fastapi-app_web_1
+sudo docker compose --profile production logs
 
-# Check database
-sudo -u postgres psql -c "\l"
+# Check specific container logs
+sudo docker logs fastapi-app-api
+sudo docker logs fastapi-app-db  
+sudo docker logs fastapi-app-nginx
+
+# Check container health
+sudo docker compose --profile production ps
 ```
 
 ### Common Issues
-- **Connection refused**: Check security group allows port 8000
-- **Database connection**: Verify PostgreSQL is running and credentials match
+- **Connection refused**: Check security group allows port 80 (HTTP) and 443 (HTTPS)
+- **Database connection**: Verify PostgreSQL container is running and healthy
 - **Docker issues**: Ensure Docker service is active
+- **Nginx issues**: Check nginx container logs
+- **Repository issues**: Ensure docker-compose.yml and nginx.conf exist in your repository
