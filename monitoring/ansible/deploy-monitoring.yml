@@ -1,0 +1,73 @@
+---
+- hosts: monitoring
+  become: yes
+  vars:
+    monitoring_dir: /opt/monitoring
+    project_name: "{{ hostvars[inventory_hostname].project_name | default('fastapi-monitoring') }}"
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - python3-pip
+        state: present
+
+    - name: Install docker-compose python module
+      pip:
+        name: docker-compose
+
+    - name: Start Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Create monitoring directory
+      file:
+        path: "{{ monitoring_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copy monitoring configuration
+      copy:
+        src: "../"
+        dest: "{{ monitoring_dir }}"
+        owner: ubuntu
+        group: ubuntu
+      notify: restart monitoring stack
+
+    - name: Create log directory for FastAPI
+      file:
+        path: /var/log/fastapi
+        state: directory
+        mode: '0777'
+
+    - name: Start monitoring stack
+      docker_compose:
+        project_src: "{{ monitoring_dir }}"
+        files:
+          - docker-compose.monitoring.yml
+        state: present
+      become_user: ubuntu
+
+  handlers:
+    - name: restart monitoring stack
+      docker_compose:
+        project_src: "{{ monitoring_dir }}"
+        files:
+          - docker-compose.monitoring.yml
+        restarted: yes
+      become_user: ubuntu
