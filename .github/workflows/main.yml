@@ -27,11 +27,7 @@ jobs:
 
     - name: Build Docker image with SBOM
       run: |
-        docker buildx build --sbom=true --tag mangale/fast-api:${{ env.SHORT_SHA }} .
-
-    - name: Push Docker images
-      run: |
-        docker push mangale/fast-api:${{ env.SHORT_SHA }}
+        docker buildx build --push --sbom=true --tag mangale/fast-api:${{ env.SHORT_SHA }} .
 
     - name: Install Trivy
       run: |
