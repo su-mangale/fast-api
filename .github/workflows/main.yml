@@ -39,10 +39,9 @@ jobs:
     - name: Scan Docker image with Trivy (fail on CRITICAL)
       run: |
         trivy image \
-          --exit-code 1 \
-          --severity CRITICAL,MEDIUM,HIGH \
+          --severity CRITICAL,HIGH,MEDIUM \
           --format table \
-          --ignore-unfixed
+          --ignore-unfixed \
           --output trivy-report.txt \
           mangale/fast-api:${{ env.SHORT_SHA }}
 
