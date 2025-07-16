@@ -40,8 +40,9 @@ jobs:
       run: |
         trivy image \
           --exit-code 1 \
-          --severity CRITICAL \
+          --severity CRITICAL,MEDIUM,HIGH \
           --format table \
+          --ignore-unfixed
           --output trivy-report.txt \
           mangale/fast-api:${{ env.SHORT_SHA }}
 
