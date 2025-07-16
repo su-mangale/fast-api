@@ -27,7 +27,7 @@ jobs:
 
     - name: Build Docker image with SBOM
       run: |
-        docker build --sbom --tag mangale/fast-api:${{ env.SHORT_SHA }} .
+        docker buildx build --sbom=true --tag mangale/fast-api:${{ env.SHORT_SHA }} .
 
     - name: Push Docker images
       run: |
