@@ -1,11 +1,11 @@
-name: Build and Push Docker Image
+name: Build, Push, and Scan Docker Image
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build:
+  build-and-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +30,28 @@ jobs:
       with:
         context: .
         push: true
-        tags: |
-          mangale/fast-api:latest
+        tags: mangale/fast-api:${{ env.SHORT_SHA }}
+
+    - name: Scan Docker image with Trivy
+      run: |
+        trivy image --format table --output trivy-report.txt mangale/fast-api:${{ env.SHORT_SHA }}
+
+    - name: Send Trivy Report via Email
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🚨 Trivy Vulnerability Report for mangale/fast-api:${{ env.SHORT_SHA }}"
+        to: lopchanmangal5@gmail.com
+        from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
+        body: |
+          Hello,
+
+          Please find attached the vulnerability report for the image:
           mangale/fast-api:${{ env.SHORT_SHA }}
+
+          Regards,
+          GitHub Actions
+        attachments: trivy-report.txt
