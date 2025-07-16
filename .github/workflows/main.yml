@@ -55,7 +55,7 @@ jobs:
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "🚨 Trivy Vulnerability Report - fast-api:${{ env.SHORT_SHA }}"
-        to: yourmail@gmail.com
+        to: lopchanmangal5@gmail.com
         from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
         body: |
           Hello,
