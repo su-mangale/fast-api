@@ -21,10 +21,15 @@ jobs:
         username: ${{ secrets.REGISTRY_USERNAME }}
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
+    - name: Get short commit SHA
+      id: vars
+      run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+
     - name: Build and Push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
-        tags: mangale/fast-api:${{ github.sha }}
-
+        tags: |
+          mangale/fast-api:latest
+          mangale/fast-api:${{ env.SHORT_SHA }}
