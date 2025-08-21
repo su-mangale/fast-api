@@ -29,8 +29,8 @@ except Exception as e:
 
 # FastAPI app configuration
 app = FastAPI(
-    title="FastAPI CRUD API",
-    description="A production-ready FastAPI CRUD API with PostgreSQL",
+    title="FastAPI",
+    description="A production-ready FastAPI with PostgreSQL",
     version="1.0.0",
     debug=DEBUG
 )
@@ -64,7 +64,7 @@ def health_check():
 
 @app.get("/")
 def read_root():
-    return {"message": "FastAPI CRUD API", "docs": "/docs", "health": "/health"}
+    return {"message": "FastAPI", "docs": "/docs", "health": "/health"}
 
 @app.post("/items/", response_model=schemas.Item)
 def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
