@@ -13,7 +13,7 @@ env:
 jobs:
   S3cure-build:
     name: Build Code
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       image_tag: ${{ env.IMAGE_TAG }}
 
