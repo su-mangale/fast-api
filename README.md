@@ -79,40 +79,6 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-## Production Deployment
-
-### AWS Deployment with Terraform (Recommended)
-
-Deploy to AWS with minimal infrastructure:
-
-```bash
-# Navigate to terraform directory
-cd terraform
-
-# Configure your variables
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your settings
-
-# Deploy infrastructure
-terraform init
-terraform plan
-terraform apply
-```
-
-**AWS Infrastructure Features:**
-- ✅ **Minimal Setup**: Single EC2 instance in default VPC
-- ✅ **Cost Effective**: Uses t3.micro (Free Tier eligible)
-- ✅ **Security**: Security groups with configurable access
-- ✅ **Flexibility**: No vendor lock-in, easily extendable
-- ✅ **Simplicity**: Quick deployment and easy management
-
-**What's NOT included** (keeping it minimal):
-- ❌ **No RDS**: Use SQLite, external DB, or Docker PostgreSQL
-- ❌ **No Load Balancer**: Direct instance access
-- ❌ **No Custom VPC**: Uses AWS default VPC
-
-See [`terraform/README.md`](terraform/README.md) for detailed AWS deployment instructions.
-
 ### Docker Compose Deployment
 
 #### Secure Deployment (Recommended)
