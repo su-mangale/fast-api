@@ -29,8 +29,6 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 FROM base as production
 # Copy only necessary files
 COPY ./app ./app
-COPY alembic.ini .
-COPY alembic ./alembic
 
 # Copy only necessary application files
 # No environment files needed - all config comes from Docker Compose

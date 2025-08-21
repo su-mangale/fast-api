@@ -1,23 +1,30 @@
-name: Build, Scan & Secure Docker Image for Production
+name: DevSecOps workflow
 
 on:
+  pull_request:
+    branches: [ main ]  # Triggers on PR to main
   push:
-    branches: [main]
+    branches: [ main ]  # Also triggers on direct push
+
+env:
+  IMAGE_NAME: mangale/fast-api
+  IMAGE_TAG: 1.2.${{ github.run_number }}
 
 jobs:
-  secure-build:
+  S3cure-build:
+    name: Build Code
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ env.IMAGE_TAG }}
 
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Get short commit SHA
-      id: vars
-      run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+  # No need to generate short SHA, using github.run_number for image tag
 
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
@@ -25,41 +32,108 @@ jobs:
         username: ${{ secrets.REGISTRY_USERNAME }}
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
-    - name: Build Docker image with SBOM
-      run: |
-        docker buildx build --push --sbom=true --tag mangale/fast-api:${{ env.SHORT_SHA }} .
+    - name: Build Docker Image (No Push Yet)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        load: true
+        tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
     - name: Install Trivy
       run: |
-        sudo apt-get update
-        sudo apt-get install -y wget
         wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.deb
         sudo dpkg -i trivy_0.64.1_Linux-64bit.deb
 
-    - name: Scan Docker image with Trivy (fail on CRITICAL)
+    - name: Scan Docker image with Trivy
       run: |
         trivy image \
           --severity CRITICAL,HIGH,MEDIUM \
-          --format table \
           --ignore-unfixed \
+          --format table \
           --output trivy-report.txt \
-          mangale/fast-api:${{ env.SHORT_SHA }}
+          ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-    - name: Send Trivy Report via Email
-      if: always()
-      uses: dawidd6/action-send-mail@v3
+    - name: Comment Trivy Report on PR
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/create-or-update-comment@v4
       with:
-        server_address: smtp.gmail.com
-        server_port: 587
-        username: ${{ secrets.EMAIL_USERNAME }}
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "🚨 Trivy Vulnerability Report - fast-api:${{ env.SHORT_SHA }}"
-        to: lopchanmangal5@gmail.com
-        from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
+        issue-number: ${{ github.event.pull_request.number }}
         body: |
-          Hello,
+          ## 🔒 Docker Image Security Scan Report
+          
+          **Repository:** ${{ github.repository }}  
+          **Branch:** ${{ github.ref_name }}  
+          **Commit:** ${{ github.sha }}  
+          **Image:** ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}  
+          **Triggered by:** ${{ github.actor }}  
+          
+          ### 📊 Trivy Security Scan Results:
+          ```
+          $(cat trivy-report.txt)
+          ```
+          
+          ---
+          **Next Steps:** Please review the scan results above. If the image is safe to deploy, approve the workflow in the [Actions tab](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) to push the image to the registry.
 
-          Attached is the Trivy vulnerability report for mangale/fast-api:${{ env.SHORT_SHA }}.
+    - name: Upload Trivy Report as Artifact (for push events)
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-security-report-${{ env.IMAGE_TAG }}
+        path: trivy-report.txt
+        retention-days: 30
 
-          - GitHub Actions (Production Grade)
-        attachments: trivy-report.txt
+    - name: Add Job Summary (for push events)
+      if: github.event_name == 'push'
+      run: |
+        echo "## 🔒 Docker Image Security Scan Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Image:** ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Pushed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Trivy Security Scan Results:" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        cat trivy-report.txt >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "**Next Steps:** Please review the scan results above and approve the workflow to push the image to the registry." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📎 **Artifact:** The full security report is available as an artifact: \`trivy-security-report-${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+        
+  waiting-for-approval:
+    name: Await Manual Approval
+    needs: S3cure-build
+    runs-on: ubuntu-latest
+    environment:
+      name: production-approval  # Setup in repo settings
+    steps:
+      - run: echo "Awaiting manual approval before pushing image..."
+
+  push-image:
+    name: Push Docker Image to Registry
+    needs: [waiting-for-approval, S3cure-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ needs.S3cure-build.outputs.image_tag }}
