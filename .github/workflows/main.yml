@@ -13,7 +13,7 @@ env:
 jobs:
   S3cure-build:
     name: Build Code
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ env.IMAGE_TAG }}
 
@@ -105,7 +105,7 @@ jobs:
   waiting-for-approval:
     name: Await Manual Approval
     needs: S3cure-build
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     environment:
       name: production-approval  # Setup in repo settings
     steps:
