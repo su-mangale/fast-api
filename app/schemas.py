@@ -7,7 +7,12 @@ class ItemBase(BaseModel):
 class ItemCreate(ItemBase):
     pass
 
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
 class Item(ItemBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
