@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -32,11 +34,15 @@ except Exception as e:
 
 # FastAPI app configuration
 app = FastAPI(
-    title="FastAPI",
-    description="A production-ready FastAPI with PostgreSQL",
+    title="Fast API Built in Python with ❤️",
+    description="",
     version="1.0.0",
     debug=DEBUG
 )
+# CORS middleware
+
+
+
 
 # CORS middleware
 app.add_middleware(
@@ -58,7 +64,7 @@ def get_db():
     finally:
         db.close()
 
-@app.get("/health")
+@app.get("/health", tags=["DEFAULTs"])
 def health_check():
     """Health check endpoint for monitoring and load balancers"""
     try:
@@ -69,33 +75,30 @@ def health_check():
     except Exception as e:
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
-@app.get("/")
-def read_root():
-    return {"message": "FastAPI", "docs": "/docs", "health": "/health"}
 
-@app.post("/items/", response_model=schemas.Item)
+@app.post("/items/", response_model=schemas.Item, tags=["CRUDs"])
 def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     return crud.create_item(db=db, item=item)
 
-@app.get("/items/", response_model=list[schemas.Item])
+@app.get("/items/", response_model=list[schemas.Item], tags=["CRUDs"])
 def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     return crud.get_items(db, skip=skip, limit=limit)
 
-@app.get("/items/{item_id}", response_model=schemas.Item)
+@app.get("/items/{item_id}", response_model=schemas.Item, tags=["CRUDs"])
 def read_item(item_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     db_item = crud.get_item(db, item_id=item_id)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return db_item
 
-@app.put("/items/{item_id}", response_model=schemas.Item)
+@app.put("/items/{item_id}", response_model=schemas.Item, tags=["CRUDs"])
 def update_item(item_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     db_item = crud.update_item(db, item_id, item)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return db_item
 
-@app.delete("/items/{item_id}", response_model=schemas.Item)
+@app.delete("/items/{item_id}", response_model=schemas.Item, tags=["CRUDs"])
 def delete_item(item_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     db_item = crud.delete_item(db, item_id)
     if db_item is None:
