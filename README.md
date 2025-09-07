@@ -1,4 +1,4 @@
-# Python FastAPI CRUD API with PostgreSQL
+# Python FastAPI CRUD API with PostgreSQL [![DevSecOps workflow](https://github.com/su-mangale/fast-api/actions/workflows/main.yml/badge.svg)](https://github.com/su-mangale/fast-api/actions/workflows/main.yml)
 
 This project is a production-ready API service built with FastAPI (Python) providing basic CRUD functionality, using PostgreSQL as the database. The development environment uses Dev Containers for consistency, and production deployment uses Docker Compose with nginx reverse proxy.
 
