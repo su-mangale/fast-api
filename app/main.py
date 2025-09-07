@@ -6,6 +6,9 @@ import logging
 from . import models, schemas, crud
 from .database import SessionLocal, engine, Base
 from .config import DEBUG, CORS_ORIGINS, ENVIRONMENT
+from .routes_auth import router as auth_router
+from .protected_routes_example import router as protected_router
+from .dependencies import get_current_active_user
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +47,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include authentication and protected routes
+app.include_router(auth_router)
+app.include_router(protected_router)
+
 def get_db():
     db = SessionLocal()
     try:
@@ -67,29 +74,29 @@ def read_root():
     return {"message": "FastAPI", "docs": "/docs", "health": "/health"}
 
 @app.post("/items/", response_model=schemas.Item)
-def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
+def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     return crud.create_item(db=db, item=item)
 
 @app.get("/items/", response_model=list[schemas.Item])
-def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     return crud.get_items(db, skip=skip, limit=limit)
 
 @app.get("/items/{item_id}", response_model=schemas.Item)
-def read_item(item_id: int, db: Session = Depends(get_db)):
+def read_item(item_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     db_item = crud.get_item(db, item_id=item_id)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return db_item
 
 @app.put("/items/{item_id}", response_model=schemas.Item)
-def update_item(item_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)):
+def update_item(item_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     db_item = crud.update_item(db, item_id, item)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return db_item
 
 @app.delete("/items/{item_id}", response_model=schemas.Item)
-def delete_item(item_id: int, db: Session = Depends(get_db)):
+def delete_item(item_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
     db_item = crud.delete_item(db, item_id)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
