@@ -20,8 +20,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = auth.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Hidden registration endpoint
-@router.post("/register", include_in_schema=False)
+# Registration endpoint (public)
+@router.post("/register", tags=["DEFAULTs"])
 def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     existing_user = crud.get_user_by_username(db, user.username)
     if existing_user:

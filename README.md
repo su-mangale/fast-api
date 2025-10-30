@@ -1,16 +1,25 @@
-# Python FastAPI CRUD API with PostgreSQL
 
-This project is a production-ready API service built with FastAPI (Python) providing basic CRUD functionality, using PostgreSQL as the database. The development environment uses Dev Containers for consistency, and production deployment uses Docker Compose with nginx reverse proxy.
+# FastAPI CRUD API with JWT Authentication & PostgreSQL
+
+This project is a production-ready API service built with FastAPI (Python) providing:
+- JWT token-based authentication for all protected endpoints
+- Basic CRUD functionality
+- PostgreSQL as the database
+- Dev Containers for development
+- Docker Compose for production deployment
+
+Swagger UI is available at `/docs` (default FastAPI docs, no custom UI).
+
 
 ## Architecture
 
 - **FastAPI**: High-performance Python web framework for building APIs
+- **JWT Authentication**: Secure endpoints using JSON Web Tokens
 - **PostgreSQL**: Relational database for persistent storage
 - **SQLAlchemy**: ORM for database interaction
 - **Alembic**: Database migrations
 - **Docker**: Containerization for production deployment
 - **Dev Containers**: Consistent development environment using VS Code Dev Containers
-- **Nginx**: Reverse proxy for production security
 
 ## Directory Structure
 
@@ -128,23 +137,27 @@ API_WORKERS="4"                        # FastAPI workers
 NGINX_PORT="80"                        # Nginx port
 ```
 
+
 ## API Endpoints
 
+- `POST /login` - Obtain JWT token
+- `POST /register` - Register new user (hidden from docs)
 - `GET /health` - Health check
-- `POST /items/` - Create item
-- `GET /items/` - List items
-- `GET /items/{id}` - Get item by ID
-- `PUT /items/{id}` - Update item
-- `DELETE /items/{id}` - Delete item
+- `POST /items/` - Create item (JWT required)
+- `GET /items/` - List items (JWT required)
+- `GET /items/{id}` - Get item by ID (JWT required)
+- `PUT /items/{id}` - Update item (JWT required)
+- `DELETE /items/{id}` - Delete item (JWT required)
+
 
 ## Security & Best Practices
 
+- ✅ **JWT authentication** for all protected endpoints
 - ✅ **Multi-stage Docker builds** for optimized images
 - ✅ **Non-root containers** for security
 - ✅ **Network isolation** between services
 - ✅ **Health checks** for all services
 - ✅ **Environment-based configuration**
-- ✅ **Nginx reverse proxy** with security headers
 - ✅ **Dev containers** for consistent development
 
 ## Commands
@@ -165,6 +178,7 @@ docker-compose logs -f api                  # View logs
 docker-compose exec api alembic upgrade head    # Run migrations
 docker-compose exec db psql -U postgres -d appdb  # Access database
 ```
+
 
 ## License
 MIT
