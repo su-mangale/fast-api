@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ main ]  # Triggers on PR to main
   push:
-    branches: [ main ]  # Also triggers on direct push
+    branches: [ main,jwt ]  # Also triggers on direct push
 
 env:
   IMAGE_NAME: mangale/fast-api
