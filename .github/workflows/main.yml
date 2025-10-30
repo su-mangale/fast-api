@@ -114,7 +114,7 @@ jobs:
   push-image:
     name: Push Docker Image to Registry
     needs: [waiting-for-approval, S3cure-build]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
