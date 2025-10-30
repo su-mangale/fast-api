@@ -1,7 +1,7 @@
 
 # FastAPI CRUD API with JWT Authentication & PostgreSQL
 
-This project is a production-ready API service built with FastAPI (Python) providing:
+This project is a production-ready API built with FastAPI (Python) providing:
 - JWT token-based authentication for all protected endpoints
 - Basic CRUD functionality
 - PostgreSQL as the database
